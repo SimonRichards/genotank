@@ -1,10 +1,5 @@
-require '/var/lib/gems/1.8/gems/gosu-0.7.27.1/lib/gosu'
-#require 'gosu'
+require 'gosu'
 include Gosu
-#require 'projectileManager.rb'
-#load 'entityManager.rb'
-#load 'player.rb'
-#load 'nature.rb'
 include Math
 load 'interval.rb'
 
