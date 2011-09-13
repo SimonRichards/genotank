@@ -1,5 +1,7 @@
-require 'gosu'
-include Gosu
+#!/usr/bin/ruby
+require 'rubygems'
+require 'gosu.rb'
+#include Gosu
 require 'player.rb'
 require 'grunt.rb'
 require 'actor.rb'
@@ -53,7 +55,7 @@ class Game < Window
         when :menu
         when :paused
         when :play
-        #    @map.update
+            #    @map.update
             @grunts.each do |grunt| 
                 if grunt.alive?
                     grunt.update [@player] 

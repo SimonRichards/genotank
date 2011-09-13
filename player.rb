@@ -1,7 +1,7 @@
 load 'actor.rb'
 
 class Player < Actor
-       def controls
+    def controls
         fire if @game.button_down? MsLeft
         @turret_angle = angle @x, @y, @game.mouse_x, @game.mouse_y
         @ax, @ay = 0, 0
@@ -10,6 +10,6 @@ class Player < Actor
         turn :ccw if @game.button_down? KbA
         turn :cw if @game.button_down? KbD
     end
-    
+
 end
-    
+

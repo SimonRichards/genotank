@@ -1,5 +1,5 @@
 class Entity
-    attr_accessor :health :state # makes getters and setters automagically
+    attr_accessor :health :state
     #graphics reference
     #mask reference (ie physical shape of object for CD)
     #position
