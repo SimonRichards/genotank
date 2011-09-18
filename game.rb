@@ -9,7 +9,7 @@ require 'map.rb'
 require 'menu.rb'
 
 class Game < Window
-    attr_accessor :player,:map 
+    attr_accessor :player,:map, :space
     $\ = "\n"
     $DT = 0.1
     $Z_BG = 0
@@ -21,10 +21,13 @@ class Game < Window
         super  screen_width, screen_height, true, 10 #640, 480, false, 10 #
         $WIDTH, $HEIGHT = screen_width, screen_height # 640, 480  #
         self.caption = "Tank"
+        @space = CP::Space.new
+        # SETTING A SIMPLE GRAVITY
+        @space.gravity = CP::Vec2.new(0, 10)
+
         @menu = Menu.new self, ["Play", "Map Editor", "Exit"], [:play, :map_editor, :exit]
         @map = Map.new self, 'fun_map.map'
         @state = :menu
-        @player = Player.new(rand($WIDTH), rand($HEIGHT), 1.0, self) 
         @player = Player.new(rand($WIDTH), rand($HEIGHT), 1.0, self)
         @grunts = Array.new 20 do |i| 
             Grunt.new rand($WIDTH), rand($HEIGHT), 1.0, self
