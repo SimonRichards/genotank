@@ -51,9 +51,8 @@ namespace genotank {
         }
 
         private Genome TournamentSelect() {
-            if (_popList == null) {
-                _popList = this.OrderBy((pair) => pair.Value).Select((pair) => pair.Key).ToList();
-            }
+            _popList = _poplist ?? OrderBy((pair) => pair.Value).Select((pair) => pair.Key).ToList();
+            
             int min = _size;
             _config.TournamentSize.Times(() => {
                 int attempt = _random.Next(_size);
