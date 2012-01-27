@@ -28,10 +28,11 @@ namespace genotank {
             _medianSeries = new Series("Median Fitness", _config.Generations);
             _medianSeries.ChartType = SeriesChartType.Line;
 
-            _task = new GeneticTest(_config);
+            _task = new GeneticSine(_config);
             Run();
         }
 
+        Genome otherWinner;
         private async void Run() {
             List<KeyValuePair<Genome, double>> orderedGenomes;
             var s = Stopwatch.StartNew();
@@ -40,18 +41,22 @@ namespace genotank {
                 current = await _task.Step();
                 orderedGenomes = current.OrderBy((x) => x.Value).ToList();
                 double best = orderedGenomes.First().Value;
+                otherWinner = orderedGenomes.First().Key;
                 double median = orderedGenomes[_config.PopSize / 2].Value;
                 _bestSeries.Points.AddXY(i, best);
                 _medianSeries.Points.AddXY(i, median);
 
                 Console.WriteLine("Generation {0}: Best: {1}, Median {2}", i, best, median);
+
             }
             Console.WriteLine("Time elapsed = " + s.Elapsed.TotalSeconds);
             progressPlot.Series.Add(_bestSeries);
             progressPlot.Series.Add(_medianSeries);
 
             Genome winner = current.OrderBy((x) => x.Value).ToList().First().Key;
-
+            if (winner != otherWinner) {
+                Debugger.Break();
+            }
             resultPlot.Series.Add(_task.Function);
             resultPlot.Series.Add(_task.Plot(winner));
 

@@ -11,6 +11,9 @@ namespace genotank {
         Variable _x;
         public Series _function;
 
+        internal override double LeftLim { get { return -5; } }
+        internal override double RightLim { get { return 5; } }
+
         public override Series Function {
             get {
                 return _function;
@@ -39,6 +42,10 @@ namespace genotank {
                 sumOfSquares += error * error;
             }
             return sumOfSquares;
+        }
+
+        internal override double Fitness(Generation.Solver solution) {
+            return 0;
         }
 
         internal override List<Variable> Inputs {

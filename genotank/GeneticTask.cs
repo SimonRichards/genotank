@@ -14,9 +14,9 @@ namespace genotank {
 
         public Series Plot(Genome individual) {
             int i = 0;
-            Series current = new Series("Actual", 100);
+            Series current = new Series("Actual");
             current.ChartType = SeriesChartType.Spline;
-            for (double x = -5; x < 5; x += 0.1, i++) {
+            for (double x = LeftLim; x < RightLim; x += 0.1, i++) {
                 _inputs[0].Value = x;
                 double actual = individual.Outputs[0].Solve();
                 current.Points.AddXY(x, actual);
@@ -30,7 +30,7 @@ namespace genotank {
 
         internal Population GeneratePopulation() {
             God factory = new God(_config, Inputs, NumOutputs);
-            _population = new Population(_config, Fitness);
+            _population = new Population(_config, this);
             _config.PopSize.Times(() => {
                 Genome genome = factory.BuildGenome();
                 _population.Add(genome, Fitness(genome));
@@ -50,7 +50,10 @@ namespace genotank {
         internal abstract int NumOutputs {get;}
 
         internal abstract double Fitness(Genome individual);
+        internal abstract double Fitness(Generation.Solver solution);
 
+        internal abstract double LeftLim { get; }
+        internal abstract double RightLim { get; }
 
         public abstract Series Function { get; }
     }

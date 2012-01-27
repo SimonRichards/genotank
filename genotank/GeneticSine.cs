@@ -11,6 +11,9 @@ namespace genotank {
         Variable _x;
         public Series _sine;
 
+        internal override double LeftLim { get { return -2; } }
+        internal override double RightLim { get { return 2; } }
+
 
         public override Series Function {
             get {
@@ -22,9 +25,9 @@ namespace genotank {
             _inputs = new List<Variable>();
             _x = new Variable("x");
             _inputs.Add(_x);
-            _sine = new Series("Sine", 100);
+            _sine = new Series("Sine");
             _sine.ChartType = SeriesChartType.Spline;
-            for (double d = -5; d < 5; d += 0.1) {
+            for (double d = LeftLim; d < RightLim; d += 0.1) {
                 _sine.Points.AddXY(d, Math.Sin(d));
             }
         }
@@ -32,15 +35,23 @@ namespace genotank {
         internal override double Fitness(Genome individual) {
             double sumOfSquares = 0;
             int i = 0;
-            Series current = new Series("Actual", 100);
-            for (double x = -5; x < 5; x += 0.1, i++) {
+            for (double x = LeftLim; x < RightLim; x += 0.1, i++) {
                 _inputs[0].Value = x;
                 double actual = individual.Outputs[0].Solve();
-                current.Points.AddXY(x, actual);
                 double error = _sine.Points[i].YValues[0] - actual;
                 sumOfSquares += error * error;
             }
-            //new XYPlot(new Series[] { _sine, current }).Show();
+            return sumOfSquares;
+        }
+
+        internal override double Fitness(Generation.Solver solution) {
+            double sumOfSquares = 0;
+            int i = 0;
+            for (double x = LeftLim; x < RightLim; x += 0.1, i++) {
+                double actual = solution(x);
+                double error = _sine.Points[i].YValues[0] - actual;
+                sumOfSquares += error * error;
+            }
             return sumOfSquares;
         }
 

@@ -8,7 +8,6 @@ using System.Diagnostics;
 namespace genotank {
     class God {
         Random _random = new Random(Configuration.Seed);
-        List<Node> _terminals;
         List<Variable> _inputs;
 
         int _numInputs, _numOutputs;
@@ -23,24 +22,13 @@ namespace genotank {
             _numOutputs = numOutputs;
             _numInputs = inputs.Count;
             _config = config;
-            int numConstants = Math.Max(_random.Next(_numInputs + 1) + _numInputs / 2, 2);
-            int numTerminals = numConstants + _numInputs;
             _inputs = new List<Variable>(_numInputs);
-            _terminals = new List<Node>(numTerminals);
 
             _allOperators = (from type in Assembly.GetExecutingAssembly().GetTypes()
                         where !type.IsAbstract && type.Name.Contains("Operator")
                         select type).ToList();
 
-            _numNodes = numTerminals + _allOperators.Count;
-
-            numConstants.Times(() => {
-                _terminals.Add(new Constant(_random.NextDouble()*5));
-            });
-
-            foreach (Variable v in inputs) {
-                _terminals.Add(v);
-            }
+            _numNodes = _numInputs + _allOperators.Count;
             _inputs = inputs;
         }
 
@@ -64,7 +52,7 @@ namespace genotank {
             if (choice < _allOperators.Count / _numNodes) {
                 return NonTerminalNode();
             } else {
-                return _terminals[_random.Next(_terminals.Count)];
+                return RandomTerminal();
             }
         }
 
@@ -90,7 +78,11 @@ namespace genotank {
         }
 
         private Node RandomTerminal() {
-            return _terminals[_random.Next(_terminals.Count)];
+            if (_random.NextDouble() > 0.5) {
+                return new Constant(_random.NextDouble() * _config.MaxConstant);
+            } else {
+                return _inputs[_random.Next(_numInputs)];
+            }
         }
     }
 }

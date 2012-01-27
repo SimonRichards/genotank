@@ -93,7 +93,8 @@ namespace genotank {
             }
         }
     };
-    /*
+    
+    /*    
     class ProtectedDivideOperator : BinaryOperator {
         override internal double Solve() {
             double result = children[0].Solve() / children[1].Solve();
@@ -106,7 +107,8 @@ namespace genotank {
             }
         }
     };
-
+    */
+    /*
     class ExponentOperator : BinaryOperator {
         override internal double Solve() {
             try {
@@ -122,7 +124,8 @@ namespace genotank {
             }
         }
     };
-    
+    */
+    /*
     class CompareOperator : Node {
 
         internal override double Solve() {
@@ -135,12 +138,13 @@ namespace genotank {
             }
         }
 
-        internal override string Format() {
+        public override string ToString() {
             return 
-                "(" + children[0].Format() + " < " + children[1].Format() + " ? " + children[2].Format() + " : " + children[3].Format() + ")";
+                "(" + children[0].ToString() + " < " + children[1].ToString() + " ? " + children[2].ToString() + " : " + children[3].ToString() + ")";
         }
 
-    }*/
+    }
+    */
 
     class Constant : Node {
         readonly double _value;

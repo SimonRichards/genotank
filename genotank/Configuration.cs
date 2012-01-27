@@ -16,15 +16,20 @@ namespace genotank {
                    MaxDepth,
                    Generations;
 
+        internal readonly double MaxConstant;
+        internal readonly bool Compile;
+
         internal Configuration (bool dummy) {
                 PopSize = 100;
                 TournamentSize = 10;
                 NumCopy = 50;
-                NumCrossover = 30;
-                NumMutate = 20;
+                NumCrossover = 25;
+                NumMutate = 25;
                 MinDepth = 2;
                 MaxDepth = 6;
                 Generations = 1000;
+                MaxConstant = 10;
+                Compile = false;
         }
     };
 }

@@ -7,6 +7,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.CodeDom.Compiler;
 using Microsoft.CSharp;
+using System.Diagnostics;
 
 namespace genotank {
     class Population : Dictionary<Genome, Double> {
@@ -15,39 +16,67 @@ namespace genotank {
         FitnessFunction _fitness;
         Random _random = new Random(Configuration.Seed);
         List<Genome> _popList;
-        private Configuration _config;
+        Configuration _config;
+        GeneticTask _task;
+
 
         private Population FromDict(IEnumerable<KeyValuePair<Genome, Double>> dict) {
-            Population pop = new Population(_config, _fitness);
+            Population pop = new Population(_config, _task);
             foreach (var pair in dict) {
                 pop.Add(pair.Key, pair.Value);
             }
             return pop;
         }
 
-        internal Population(Configuration config, FitnessFunction fitness)
+        private Population FromGenomes(IEnumerable<Genome> genomes) {
+            Generation generation = Compile(genomes);
+            List<Genome> genomeList = genomes.ToList();
+            Population pop = new Population(_config, _task);
+            for (int i = 0; i < _config.PopSize; i++) {
+                pop.Add(genomeList[i], _task.Fitness(generation.Solutions[i]));
+            }
+            return pop;
+        }
+
+        internal Population(Configuration config, GeneticTask task)
             : base(config.PopSize) {
             _size = config.PopSize;
             _config = config;
-            _fitness = fitness;
+            _task = task;
+            _fitness = task.Fitness;
         }
 
 
         internal Population NextGeneration() {
-            var next = new ConcurrentBag<KeyValuePair<Genome, Double>>();
-            Parallel.For(0, _size, (i, loop) => {
-                double method = _random.NextDouble();
-                Genome generated;
-                if (method < 0.5) {
-                    generated = TournamentSelect().Clone();
-                } else if (method < 0.75) {
-                    generated = TournamentSelect().Crossover(TournamentSelect());
-                } else {
-                    generated = TournamentSelect().Clone().Mutate();
-                }
-                next.Add(new KeyValuePair<Genome, Double>(generated, _fitness(generated)));
-            });
-            return FromDict(next);
+            if (_config.Compile) {
+                var next = new ConcurrentBag<Genome>();
+                Parallel.For(0, _size, (i, loop) => {
+                    Genome generated;
+                    if (i < _config.NumCopy) {
+                        generated = TournamentSelect().Clone();
+                    } else if (i < _config.NumCrossover + _config.NumCopy) {
+                        generated = TournamentSelect().Crossover(TournamentSelect());
+                    } else {
+                        generated = TournamentSelect().Clone().Mutate();
+                    }
+                    next.Add(generated);
+                });
+                return FromGenomes(next);
+            } else {
+                var next = new ConcurrentBag<KeyValuePair<Genome, Double>>();
+                Parallel.For(0, _size, (i, loop) => {
+                    Genome generated;
+                    if (i < _config.NumCopy) {
+                        generated = TournamentSelect().Clone();
+                    } else if (i < _config.NumCrossover + _config.NumCopy) {
+                        generated = TournamentSelect().Crossover(TournamentSelect());
+                    } else {
+                        generated = TournamentSelect().Clone().Mutate();
+                    }
+                    next.Add(new KeyValuePair<Genome, Double>(generated, _fitness(generated)));
+                });
+                return FromDict(next);
+            }
         }
 
         private Genome TournamentSelect() {
@@ -64,17 +93,17 @@ namespace genotank {
             return _popList[min];
         }
 
-        public Generation Compile() {
+        public Generation Compile(IEnumerable<Genome> genomes) {
             StringBuilder program = new StringBuilder(5000);
             program.Append(@"namespace genotank {
-                    public class DynamicTree : Tree {");
+                    public class CompiledGeneration : Generation {");
 
-            var genomes = Keys.ToArray();
-            for (int i = 0; i < Count; i++) {
+            int i = 0;
+            foreach (Genome genome in genomes) {
                 program.Append(@"private double Solve");
-                program.Append(i);
+                program.Append(i++);
                 program.Append("(double x) {return ");
-                program.Append(genomes[i].Outputs[0].ToString());
+                program.Append(genome.Outputs[0].ToString());
                 program.Append(";}");
             }
 
@@ -83,9 +112,9 @@ namespace genotank {
 
                         public Solver[] _solutions;
 
-                        public DynamicTree() {
+                        public CompiledGeneration() {
                             _solutions = new Solver[] {");
-            for (int i = 0; i < 100; i++) {
+            for (i = 0; i < 100; i++) {
                 program.Append("Solve" + i + ",");
             }
 
@@ -106,6 +135,9 @@ namespace genotank {
             var parameters = new CompilerParameters(new string[] { "Tree.dll" });
             parameters.GenerateInMemory = true;
             CompilerResults results = csc.CompileAssemblyFromSource(parameters, program.ToString());
+            if (results.Errors.HasErrors) {
+                Debugger.Break();
+            }
             var types = results.CompiledAssembly.GetTypes();
             var type = types[0];
             return (Generation)type.GetConstructor(Type.EmptyTypes).Invoke(null);
