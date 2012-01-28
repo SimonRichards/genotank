@@ -17,6 +17,8 @@ namespace genotank {
         Configuration _config;
         readonly GeneticTask _task;
         readonly Genome [] _genomes;
+        private readonly double[] _fitnesses;
+        private readonly bool[] _fitnessStored;
         private readonly Genome[] _next;
 
         internal KeyValuePair<Genome, double> Best {
@@ -24,9 +26,9 @@ namespace genotank {
                 int bestIndex = 0;
                 double bestFitness = double.MaxValue;
                 for (int i = 0; i < _size; i++) {
-                    if (this[i].Fitness.HasValue && this[i].Fitness < bestFitness) {
+                    if (_fitnessStored[i] && _fitnesses[i] < bestFitness) {
                         bestIndex = i;
-                        bestFitness = this[i].Fitness.Value;
+                        bestFitness = _fitnesses[i];
                     }
                 }
                 return new KeyValuePair<Genome, double>(this[bestIndex], bestFitness); 
@@ -52,6 +54,8 @@ namespace genotank {
             _task = task;
             _fitnessFunc = task.Fitness;
             _genomes = new Genome[_size];
+            _fitnesses = new double[_size];
+            _fitnessStored = new bool[_size];
             _next = new Genome[_size];
         }
 
@@ -59,8 +63,7 @@ namespace genotank {
         //TODO Change to some kind of worker pool thing
         internal void Evaluate() {
             Debug.Assert(_config.NumMutate + _config.NumCrossover + _config.NumCopy == _size);
-            //Parallel.For(0, _size, (i, loop) => {
-            for (int i = 0; i < _size; i++) {
+            Parallel.For(0, _size, (i, loop) => {
                 if (i < _config.NumCopy) {
                     _next[i] = TournamentSelect().Clone();
                 }
@@ -70,7 +73,7 @@ namespace genotank {
                 else {
                     _next[i] = TournamentSelect().Clone().Mutate();
                 }
-            }//);
+            });
         }
 
         //TODO better memoisation pattern?
@@ -78,15 +81,18 @@ namespace genotank {
             double min = double.MaxValue;
             int best = -1;
             for (int i = 0 ; i < _config.TournamentSize; i++) {
-                var currentIndex = _random.Next(_size);
-                var current = this[currentIndex];
-                if (!current.Fitness.HasValue) {
-                    current.Fitness = _fitnessFunc(current);
+                int current = _random.Next(_size);
+                double fitness;
+                if (_fitnessStored[current]) {
+                    fitness = _fitnesses[current];
+                } else {
+                    fitness = _fitnessFunc(this[current]);
+                    _fitnesses[current] = fitness;
+                    _fitnessStored[current] = true;
                 }
-
-                if (current.Fitness < min) {
-                    min = current.Fitness.Value;
-                    best = currentIndex;
+                if (fitness < min) {
+                    min = fitness;
+                    best = current;
                 }
             }
             return this[best];
@@ -102,7 +108,7 @@ namespace genotank {
                 program.Append(@"private double Solve");
                 program.Append(i++);
                 program.Append("(double x) {return ");
-                program.Append(genome.Output.ToString());
+                program.Append(genome.Outputs[0].ToString());
                 program.Append(";}");
             }
 

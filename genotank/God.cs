@@ -1,75 +1,81 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Text;
 using System.Reflection;
 using System.Diagnostics;
 
 namespace genotank {
     class God {
-        private delegate Expression ExpressionFactory(int selection, int depth);
         readonly Random _random = new Random(Configuration.Seed);
-        readonly List<ParameterExpression>  _inputs;
-
-        private const int NonTerminalExpressions = 3;
-        private const int AllExpressions = NonTerminalExpressions + 2;
+        readonly List<Variable> _inputs;
 
         readonly int _numInputs;
         readonly int _numOutputs;
 
+        delegate Node NodeFactory();
+
+        readonly List<Type> _allOperators;
+        readonly double _numNodes;
         Configuration _config;
 
-        internal God(Configuration config, IEnumerable<string> inputs, int numOutputs) {
+        internal God(Configuration config, List<Variable> inputs, int numOutputs) {
             _numOutputs = numOutputs;
-            _numInputs = inputs.Count();
+            _numInputs = inputs.Count;
             _config = config;
-            _inputs = new List<ParameterExpression>(_numInputs);
-            foreach (var input in inputs) {
-                _inputs.Add(Expression.Parameter(typeof(double), input));
-            }
+            _inputs = new List<Variable>(_numInputs);
+
+            _allOperators = (from type in Assembly.GetExecutingAssembly().GetTypes()
+                        where !type.IsAbstract && type.Name.Contains("Operator")
+                        select type).ToList();
+
+            _numNodes = _numInputs + _allOperators.Count;
+            _inputs = inputs;
         }
 
         internal Genome BuildGenome() {
-            return new Genome(
-                Expression.Lambda<Func<double, double>>(
-                    (_random.Next(2) == 1 ? Full() : Grow()),
-                    _inputs.ToArray()), this);
-        }
-
-
-        private Expression Full() {
-            return RandomExpression(AllExpressions, 0);
-        }
-
-        private Expression Grow() {
-            return RandomExpression(NonTerminalExpressions, 0);
-        }
-
-        private Expression RandomExpression(int selection, int depth) {
-            var factory = depth == _config.MaxDepth ?
-                (ExpressionFactory)RandomTerminal : RandomExpression;
-            switch (_random.Next(selection)) {
-                case 0:
-                    return Expression.Add(factory(selection, depth + 1), factory(selection, depth + 1));
-                case 1:
-                    return Expression.Subtract(factory(selection, depth + 1), factory(selection, depth + 1));
-                case 2:
-                    return Expression.Multiply(factory(selection, depth + 1), factory(selection, depth + 1));
-                default:
-                    return RandomTerminal(0, 0);
+            var outputs = new List<Node>(_numOutputs);
+            for (int i = 0; i < _numInputs; i++) {
+                outputs.Add(RampedHalfAndHalf());
             }
+            return new Genome(outputs, this);
         }
 
-        private Expression RandomTerminal(int selection, int depth) {
-            switch (_random.Next(2)) {
-                case 0:
-                    return _inputs[_random.Next(_inputs.Count)];
-                case 1:
-                    return Expression.Constant(_random.NextDouble(), typeof(double));
-                default:
-                    throw new Exception("You fucked up");
+
+        internal Node RampedHalfAndHalf() {
+            int depth = _config.MaxDepth - _random.Next(_config.MaxDepth - _config.MinDepth + 1);
+            NodeFactory factory  = _random.Next(2) == 1 ? (NodeFactory)AnyNode : NonTerminalNode;
+            return BuildTree(0, depth, factory);
+        }
+
+        private Node AnyNode() {
+            double choice = _random.NextDouble();
+            if (choice < _allOperators.Count / _numNodes) {
+                return NonTerminalNode();
             }
+            return RandomTerminal();
+        }
+
+        private Node NonTerminalNode() {
+// ReSharper disable PossibleNullReferenceException
+            return (Node)_allOperators[_random.Next(_allOperators.Count)].GetConstructor(Type.EmptyTypes).Invoke(null);
+// ReSharper restore PossibleNullReferenceException
+        }
+
+        private Node BuildTree(int currentDepth, int depth, NodeFactory factory) {
+            var node = currentDepth == depth ? RandomTerminal() : factory();
+
+            for (int i = 0; i < node.Arity; i++) {
+                node.Children[i] = BuildTree(currentDepth + 1, depth, factory);
+            }
+            return node;
+        }
+
+        private Node RandomTerminal() {
+            if (_random.NextDouble() > 0.5) {
+                return new Constant(_random.NextDouble() * _config.MaxConstant + 1);
+            }
+            return _inputs[_random.Next(_numInputs)];
         }
     }
 }

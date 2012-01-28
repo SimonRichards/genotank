@@ -14,7 +14,8 @@ namespace genotank {
                 ChartType = SeriesChartType.Spline
             };
             for (double x = LeftLim; x < RightLim; x += 0.1, i++) {
-                double actual = individual.Output(x);
+                Inputs[0].Value = x;
+                double actual = individual.Outputs[0].Solve();
                 current.Points.AddXY(x, actual);
             }
             return current;
@@ -33,7 +34,7 @@ namespace genotank {
             return _population;
         }
 
-        internal abstract IEnumerable<string> Inputs { get; }
+        internal abstract List<Variable> Inputs { get; }
 
         internal abstract int NumOutputs {get;}
 
