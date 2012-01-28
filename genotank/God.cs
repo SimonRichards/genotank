@@ -7,15 +7,16 @@ using System.Diagnostics;
 
 namespace genotank {
     class God {
-        Random _random = new Random(Configuration.Seed);
-        List<Variable> _inputs;
+        readonly Random _random = new Random(Configuration.Seed);
+        readonly List<Variable> _inputs;
 
-        int _numInputs, _numOutputs;
+        readonly int _numInputs;
+        readonly int _numOutputs;
 
         delegate Node NodeFactory();
 
-        List<Type> _allOperators;
-        double _numNodes;
+        readonly List<Type> _allOperators;
+        readonly double _numNodes;
         Configuration _config;
 
         internal God(Configuration config, List<Variable> inputs, int numOutputs) {
@@ -33,10 +34,10 @@ namespace genotank {
         }
 
         internal Genome BuildGenome() {
-            List<Node> outputs = new List<Node>(_numOutputs);
-            _numOutputs.Times(() => {
+            var outputs = new List<Node>(_numOutputs);
+            for (int i = 0; i < _numInputs; i++) {
                 outputs.Add(RampedHalfAndHalf());
-            });
+            }
             return new Genome(outputs, this);
         }
 
@@ -57,32 +58,25 @@ namespace genotank {
         }
 
         private Node NonTerminalNode() {
+// ReSharper disable PossibleNullReferenceException
             return (Node)_allOperators[_random.Next(_allOperators.Count)].GetConstructor(Type.EmptyTypes).Invoke(null);
+// ReSharper restore PossibleNullReferenceException
         }
 
         private Node BuildTree(int currentDepth, int depth, NodeFactory factory) {
-            Node node;
-            if (currentDepth > depth) {
-                Debugger.Break();
-            }
-            if (currentDepth == depth) {
-                node = RandomTerminal();
-            } else {
-                node = factory();
-            }
+            var node = currentDepth == depth ? RandomTerminal() : factory();
 
             for (int i = 0; i < node.Arity; i++) {
-                node.children[i] = BuildTree(currentDepth + 1, depth, factory);
+                node.Children[i] = BuildTree(currentDepth + 1, depth, factory);
             }
             return node;
         }
 
         private Node RandomTerminal() {
             if (_random.NextDouble() > 0.5) {
-                return new Constant(_random.NextDouble() * _config.MaxConstant);
-            } else {
-                return _inputs[_random.Next(_numInputs)];
+                return new Constant(_random.NextDouble() * _config.MaxConstant + 1);
             }
+            return _inputs[_random.Next(_numInputs)];
         }
     }
 }

@@ -5,28 +5,29 @@ using System.CodeDom.Compiler;
 namespace genotank {
 
     abstract class Node {
-        internal Node[] children;
+        internal Node[] Children;
 
-        protected Node () {
-             children = new Node[this.Arity];
+        protected Node (int arity) {
+             Children = new Node[arity];
+            Arity = arity;
         }
 
         abstract internal double Solve();
         abstract override public string ToString();
-        abstract internal int Arity {get;}
+        internal int Arity { get; private set; }
 
         internal virtual Node DeepClone() {
-            Node head = (Node)this.MemberwiseClone();
-            head.children = new Node[head.Arity];
-            for (int i = 0; i < children.Length; i++) {
-                head.children[i] = children[i].DeepClone();
+            var head = (Node)this.MemberwiseClone();
+            head.Children = new Node[head.Arity];
+            for (int i = 0; i < Children.Length; i++) {
+                head.Children[i] = Children[i].DeepClone();
             }
             return head;
         }
 
         internal void AddToList(List<Node> allNodes) {
             allNodes.Add(this);
-            foreach (Node child in children) {
+            foreach (Node child in Children) {
                 child.AddToList(allNodes);
             }
         }
@@ -34,28 +35,24 @@ namespace genotank {
     };
 
     abstract class BinaryOperator : Node {
-        abstract internal string Symbol { get; }
+        internal BinaryOperator() : base(2) {}
 
-        override internal int Arity {
-            get {
-                return 2;
-            }
-        }
+        abstract internal string Symbol { get; }
 
         override public string ToString() {
             return
                 '(' +
-                children[0].ToString() +
+                Children[0].ToString() +
                 Symbol +
-                children[1].ToString() +
+                Children[1].ToString() +
                 ')';
         }
     }
 
     class AddOperator : BinaryOperator {
         override internal double Solve() {
-            double a = children[0].Solve();
-            double b = children[1].Solve();
+            double a = Children[0].Solve();
+            double b = Children[1].Solve();
             return a + b;
         }
 
@@ -68,8 +65,8 @@ namespace genotank {
     
     class SubtractOperator : BinaryOperator {
         override internal double Solve() {
-            double a = children[0].Solve();
-            double b = children[1].Solve();
+            double a = Children[0].Solve();
+            double b = Children[1].Solve();
             return a - b;
         }
 
@@ -82,8 +79,8 @@ namespace genotank {
     
     class MultiplyOperator : BinaryOperator {
         override internal double Solve() {
-            double a = children[0].Solve();
-            double b = children[1].Solve();
+            double a = Children[0].Solve();
+            double b = Children[1].Solve();
             return a * b;
         }
 
@@ -94,11 +91,11 @@ namespace genotank {
         }
     };
     
-    /*    
+       /*
     class ProtectedDivideOperator : BinaryOperator {
         override internal double Solve() {
             double result = children[0].Solve() / children[1].Solve();
-            return Double.IsInfinity(result) ? 1 : result;
+            return Double.IsInfinity(result) || Double.IsInfinity(result) ? 1 : result;
         }
 
         override internal string Symbol {
@@ -106,8 +103,8 @@ namespace genotank {
                 return " / ";
             }
         }
-    };
-    */
+    };*/
+    
     /*
     class ExponentOperator : BinaryOperator {
         override internal double Solve() {
@@ -149,18 +146,12 @@ namespace genotank {
     class Constant : Node {
         readonly double _value;
 
-        internal Constant(double value) {
+        internal Constant(double value) : base(0) {
             _value = value;
         }
 
         override internal double Solve() {
             return _value;
-        }
-
-        override internal int Arity {
-            get {
-                return 0;
-            }
         }
 
         override public string ToString() {
@@ -169,10 +160,10 @@ namespace genotank {
     };
 
     class Variable : Node {
-        string _name;
+        readonly string _name;
         double _value;
 
-        internal Variable(string name) {
+        internal Variable(string name) :base(0) {
             _name = name;
         }
 
@@ -190,12 +181,6 @@ namespace genotank {
             }
             set {
                 _value = value;
-            }
-        }
-
-        override internal int Arity {
-            get {
-                return 0;
             }
         }
 

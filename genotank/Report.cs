@@ -1,12 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
 using System.Windows.Forms;
-using System.Threading;
 using System.Windows.Forms.DataVisualization.Charting;
 using System.Diagnostics;
 
@@ -14,55 +7,57 @@ namespace genotank {
     internal partial class Report : Form {
 
         Configuration _config;
-        GeneticTask _task;
-        Series _bestSeries;
-        Series _medianSeries;
+        readonly GeneticTask _task;
+        readonly Series _bestSeries;
+        //Series _medianSeries;
 
         internal Report() {
             InitializeComponent();
             _config = new Configuration(true);
 
-            _bestSeries = new Series("Best Fitness", _config.Generations);
-            _bestSeries.ChartType = SeriesChartType.Line;
+            _bestSeries = new Series("Best Fitness", _config.Generations) {
+                ChartType = SeriesChartType.Line
+            };
+            /*
+            _medianSeries = new Series("Median Fitness", _config.Generations) {
+                ChartType = SeriesChartType.Line
+            };*/
 
-            _medianSeries = new Series("Median Fitness", _config.Generations);
-            _medianSeries.ChartType = SeriesChartType.Line;
+            progressBar.Maximum = _config.PopSize;
+            progressBar.Step = 1;
 
-            _task = new GeneticSine(_config);
+            _task = new GeneticTest(_config);
             Run();
         }
 
-        Genome otherWinner;
-        private async void Run() {
-            List<KeyValuePair<Genome, double>> orderedGenomes;
+        private /*async */void Run() {
+            int generation = 0;
             var s = Stopwatch.StartNew();
-            Population current = _task.GeneratePopulation();
-            for (int i = 1; i <= _config.Generations; i++) {
-                current = await _task.Step();
-                orderedGenomes = current.OrderBy((x) => x.Value).ToList();
-                double best = orderedGenomes.First().Value;
-                otherWinner = orderedGenomes.First().Key;
-                double median = orderedGenomes[_config.PopSize / 2].Value;
-                _bestSeries.Points.AddXY(i, best);
-                _medianSeries.Points.AddXY(i, median);
-
-                Console.WriteLine("Generation {0}: Best: {1}, Median {2}", i, best, median);
-
+            var population = _task.GeneratePopulation();
+            while (++generation < _config.Generations) {
+                population.Evaluate();
+                var best = population.Best;
+                Console.WriteLine("Generation {0} best: {1}\n{2}", generation - 1, best.Value, best.Key.Outputs[0]);
+                if (best.Value < _config.Threshold) {
+                    break;
+                }
+                population = population.Next;
+                progressBar.PerformStep();
             }
+            var winner = population.Best;
+            //Console.WriteLine("Generation {0} winner: {1}\n{2}", i, best.Value, best.Key.Outputs[0]);
+            //_bestSeries.Points.AddXY(i, best.Value);
+            //_medianSeries.Points.AddXY(i, median);
+            //var winner = current.Best;
             Console.WriteLine("Time elapsed = " + s.Elapsed.TotalSeconds);
             progressPlot.Series.Add(_bestSeries);
-            progressPlot.Series.Add(_medianSeries);
+            //progressPlot.Series.Add(_medianSeries);
 
-            Genome winner = current.OrderBy((x) => x.Value).ToList().First().Key;
-            if (winner != otherWinner) {
-                Debugger.Break();
-            }
             resultPlot.Series.Add(_task.Function);
-            resultPlot.Series.Add(_task.Plot(winner));
+            resultPlot.Series.Add(_task.Plot(winner.Key));
 
-            Console.WriteLine(winner.Outputs[0].ToString());
-            Console.WriteLine("Fitness = " + _task.Fitness(winner));
-
+            //Console.WriteLine(winner.Key.Outputs[0]);
+            //Console.WriteLine("Fitness = " + winner.Value);
         }
     }
 }

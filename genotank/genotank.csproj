@@ -65,21 +65,10 @@
     <Compile Include="Report.Designer.cs">
       <DependentUpon>Report.cs</DependentUpon>
     </Compile>
-    <Compile Include="Task.cs" />
-    <Compile Include="Util.cs" />
-    <Compile Include="XYPlot.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="XYPlot.Designer.cs">
-      <DependentUpon>XYPlot.cs</DependentUpon>
-    </Compile>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Report.resx">
       <DependentUpon>Report.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="XYPlot.resx">
-      <DependentUpon>XYPlot.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>

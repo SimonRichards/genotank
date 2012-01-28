@@ -1,105 +1,110 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Collections;
-using System.Collections.Concurrent;
 using System.CodeDom.Compiler;
 using Microsoft.CSharp;
 using System.Diagnostics;
+using Tree;
 
 namespace genotank {
-    class Population : Dictionary<Genome, Double> {
+    class Population {
         internal delegate double FitnessFunction(Genome g);
-        int _size;
-        FitnessFunction _fitness;
-        Random _random = new Random(Configuration.Seed);
-        List<Genome> _popList;
+
+        readonly int _size;
+        readonly FitnessFunction _fitnessFunc;
+        readonly Random _random = new Random(Configuration.Seed);
         Configuration _config;
-        GeneticTask _task;
+        readonly GeneticTask _task;
+        readonly Genome [] _genomes;
+        private readonly double[] _fitnesses;
+        private readonly bool[] _fitnessStored;
+        private readonly Genome[] _next;
 
-
-        private Population FromDict(IEnumerable<KeyValuePair<Genome, Double>> dict) {
-            Population pop = new Population(_config, _task);
-            foreach (var pair in dict) {
-                pop.Add(pair.Key, pair.Value);
+        internal KeyValuePair<Genome, double> Best {
+            get {
+                int bestIndex = 0;
+                double bestFitness = double.MaxValue;
+                for (int i = 0; i < _size; i++) {
+                    if (_fitnessStored[i] && _fitnesses[i] < bestFitness) {
+                        bestIndex = i;
+                        bestFitness = _fitnesses[i];
+                    }
+                }
+                return new KeyValuePair<Genome, double>(this[bestIndex], bestFitness); 
             }
-            return pop;
         }
 
-        private Population FromGenomes(IEnumerable<Genome> genomes) {
-            Generation generation = Compile(genomes);
-            List<Genome> genomeList = genomes.ToList();
-            Population pop = new Population(_config, _task);
-            for (int i = 0; i < _config.PopSize; i++) {
-                pop.Add(genomeList[i], _task.Fitness(generation.Solutions[i]));
-            }
-            return pop;
+        internal Genome this[int i] {
+           get { return _genomes[i]; }
+           set { _genomes[i] = value; }
         }
 
-        internal Population(Configuration config, GeneticTask task)
-            : base(config.PopSize) {
+        internal Genome[] Genomes {
+            set {
+                for (int i = 0; i < _size; i++) {
+                    this[i] = value[i];
+                }
+            }
+        }
+
+        internal Population(Configuration config, GeneticTask task) {
             _size = config.PopSize;
             _config = config;
             _task = task;
-            _fitness = task.Fitness;
+            _fitnessFunc = task.Fitness;
+            _genomes = new Genome[_size];
+            _fitnesses = new double[_size];
+            _fitnessStored = new bool[_size];
+            _next = new Genome[_size];
         }
 
 
-        internal Population NextGeneration() {
-            if (_config.Compile) {
-                var next = new ConcurrentBag<Genome>();
-                Parallel.For(0, _size, (i, loop) => {
-                    Genome generated;
-                    if (i < _config.NumCopy) {
-                        generated = TournamentSelect().Clone();
-                    } else if (i < _config.NumCrossover + _config.NumCopy) {
-                        generated = TournamentSelect().Crossover(TournamentSelect());
-                    } else {
-                        generated = TournamentSelect().Clone().Mutate();
-                    }
-                    next.Add(generated);
-                });
-                return FromGenomes(next);
-            } else {
-                var next = new ConcurrentBag<KeyValuePair<Genome, Double>>();
-                Parallel.For(0, _size, (i, loop) => {
-                    Genome generated;
-                    if (i < _config.NumCopy) {
-                        generated = TournamentSelect().Clone();
-                    } else if (i < _config.NumCrossover + _config.NumCopy) {
-                        generated = TournamentSelect().Crossover(TournamentSelect());
-                    } else {
-                        generated = TournamentSelect().Clone().Mutate();
-                    }
-                    next.Add(new KeyValuePair<Genome, Double>(generated, _fitness(generated)));
-                });
-                return FromDict(next);
-            }
-        }
-
-        private Genome TournamentSelect() {
-            if (_popList == null) {
-                _popList = this.OrderBy((pair) => pair.Value).Select((pair) => pair.Key).ToList();
-            }
-            int min = _size;
-            _config.TournamentSize.Times(() => {
-                int attempt = _random.Next(_size);
-                if (attempt < min) {
-                    min = attempt;
+        //TODO Change to some kind of worker pool thing
+        internal void Evaluate() {
+            Debug.Assert(_config.NumMutate + _config.NumCrossover + _config.NumCopy == _size);
+            Parallel.For(0, _size, (i, loop) => {
+                if (i < _config.NumCopy) {
+                    _next[i] = TournamentSelect().Clone();
+                }
+                else if (i < _config.NumCrossover + _config.NumCopy) {
+                    _next[i] = TournamentSelect().Crossover(TournamentSelect());
+                }
+                else {
+                    _next[i] = TournamentSelect().Clone().Mutate();
                 }
             });
-            return _popList[min];
+        }
+
+        //TODO better memoisation pattern?
+        private Genome TournamentSelect() {
+            double min = double.MaxValue;
+            int best = -1;
+            for (int i = 0 ; i < _config.TournamentSize; i++) {
+                int current = _random.Next(_size);
+                double fitness;
+                if (_fitnessStored[current]) {
+                    fitness = _fitnesses[current];
+                } else {
+                    fitness = _fitnessFunc(this[current]);
+                    _fitnesses[current] = fitness;
+                    _fitnessStored[current] = true;
+                }
+                if (fitness < min) {
+                    min = fitness;
+                    best = current;
+                }
+            }
+            return this[best];
         }
 
         public Generation Compile(IEnumerable<Genome> genomes) {
-            StringBuilder program = new StringBuilder(5000);
+            var program = new StringBuilder(5000);
             program.Append(@"namespace genotank {
                     public class CompiledGeneration : Generation {");
 
             int i = 0;
-            foreach (Genome genome in genomes) {
+            foreach (var genome in genomes) {
                 program.Append(@"private double Solve");
                 program.Append(i++);
                 program.Append("(double x) {return ");
@@ -132,15 +137,23 @@ namespace genotank {
                 ");
 
             var csc = new CSharpCodeProvider(new Dictionary<string, string>() { { "CompilerVersion", "v4.0" } });
-            var parameters = new CompilerParameters(new string[] { "Tree.dll" });
-            parameters.GenerateInMemory = true;
-            CompilerResults results = csc.CompileAssemblyFromSource(parameters, program.ToString());
+            var parameters = new CompilerParameters(new string[] {"Tree.dll"}) {GenerateInMemory = true};
+            var results = csc.CompileAssemblyFromSource(parameters, program.ToString());
             if (results.Errors.HasErrors) {
                 Debugger.Break();
             }
             var types = results.CompiledAssembly.GetTypes();
             var type = types[0];
+// ReSharper disable PossibleNullReferenceException
             return (Generation)type.GetConstructor(Type.EmptyTypes).Invoke(null);
+// ReSharper restore PossibleNullReferenceException
+        }
+
+        public Population Next {
+            get {
+                var next = new Population(_config, _task) {Genomes = _next};
+                return next;
+            }
         }
     }
     

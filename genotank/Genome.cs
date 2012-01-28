@@ -7,9 +7,9 @@ using System.Diagnostics;
 
 namespace genotank {
     class Genome {
-        List<Node> _outputs; // Make array?
-        God _god;
-        static Random _random = new Random(Configuration.Seed);
+        readonly List<Node> _outputs; // Make array?
+        readonly God _god;
+        private static readonly Random Random = new Random(Configuration.Seed);
 
         internal Genome(List<Node> outputs, God god) {
             _outputs = outputs;
@@ -17,10 +17,13 @@ namespace genotank {
         }
 
         internal Genome Clone() {
-            List<Node> outputs = new List<Node>(_outputs.Count);
+            var outputs = new List<Node>(_outputs.Count);
+            /*
             for (int i = 0; i < _outputs.Count; i++) {
                 outputs.Add(_outputs[i].DeepClone());
             }
+             */
+            outputs.AddRange(_outputs.Select(t => t.DeepClone()));
             return new Genome(outputs, _god);
         }
 
@@ -37,23 +40,23 @@ namespace genotank {
         }
 
         private Node GetRandomNode() {
-            Node head = _outputs[_random.Next(_outputs.Count)];
-            List<Node> allNodes = new List<Node>();
+            Node head = _outputs[Random.Next(_outputs.Count)];
+            var allNodes = new List<Node>();
             head.AddToList(allNodes);
-            return allNodes[_random.Next(allNodes.Count)];
+            return allNodes[Random.Next(allNodes.Count)];
         }
 
         private void SetRandomNode(Node newNode) {
-            int n = _random.Next(_outputs.Count);
-            Node head = _outputs[n];
+            int n = Random.Next(_outputs.Count);
+            var head = _outputs[n];
             if (head.Arity > 0) {
-                List<Node> allNodes = new List<Node>();
+                var allNodes = new List<Node>();
                 head.AddToList(allNodes);
                 Node toSet;
                 do {
-                    toSet = allNodes[_random.Next(allNodes.Count)];
+                    toSet = allNodes[Random.Next(allNodes.Count)];
                 } while (toSet.Arity == 0);
-                toSet.children[_random.Next(toSet.Arity)] = newNode;
+                toSet.Children[Random.Next(toSet.Arity)] = newNode;
             } else {
                 _outputs[n] = newNode;
             }

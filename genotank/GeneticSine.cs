@@ -1,19 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Windows.Forms.DataVisualization.Charting;
-using System.Windows.Forms;
-using System.Threading;
+using Tree;
 
 namespace genotank {
-    internal class GeneticSine : GeneticTask {
-        Variable _x;
-        public Series _sine;
+    internal sealed class GeneticSine : GeneticTask {
+        readonly Variable _x;
+        private readonly Series _sine;
+        private readonly List<Variable> _inputs;
 
-        internal override double LeftLim { get { return -2; } }
-        internal override double RightLim { get { return 2; } }
-
+        internal override double LeftLim { get { return -5; } }
+        internal override double RightLim { get { return 5; } }
+        private const double Step = 0.1;
 
         public override Series Function {
             get {
@@ -25,9 +23,8 @@ namespace genotank {
             _inputs = new List<Variable>();
             _x = new Variable("x");
             _inputs.Add(_x);
-            _sine = new Series("Sine");
-            _sine.ChartType = SeriesChartType.Spline;
-            for (double d = LeftLim; d < RightLim; d += 0.1) {
+            _sine = new Series("Sine") {ChartType = SeriesChartType.Spline};
+            for (double d = LeftLim; d < RightLim; d += Step) {
                 _sine.Points.AddXY(d, Math.Sin(d));
             }
         }
@@ -35,7 +32,7 @@ namespace genotank {
         internal override double Fitness(Genome individual) {
             double sumOfSquares = 0;
             int i = 0;
-            for (double x = LeftLim; x < RightLim; x += 0.1, i++) {
+            for (double x = LeftLim; x < RightLim; x += Step, i++) {
                 _inputs[0].Value = x;
                 double actual = individual.Outputs[0].Solve();
                 double error = _sine.Points[i].YValues[0] - actual;
