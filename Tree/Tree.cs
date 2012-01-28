@@ -1,5 +1,4 @@
-﻿
-namespace genotank {
+﻿namespace Tree {
     public abstract class Generation {
 
         public delegate double Solver(double x);

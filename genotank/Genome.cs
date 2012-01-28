@@ -18,11 +18,6 @@ namespace genotank {
 
         internal Genome Clone() {
             var outputs = new List<Node>(_outputs.Count);
-            /*
-            for (int i = 0; i < _outputs.Count; i++) {
-                outputs.Add(_outputs[i].DeepClone());
-            }
-             */
             outputs.AddRange(_outputs.Select(t => t.DeepClone()));
             return new Genome(outputs, _god);
         }

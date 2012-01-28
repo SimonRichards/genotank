@@ -52,9 +52,8 @@ namespace genotank {
             double choice = _random.NextDouble();
             if (choice < _allOperators.Count / _numNodes) {
                 return NonTerminalNode();
-            } else {
-                return RandomTerminal();
             }
+            return RandomTerminal();
         }
 
         private Node NonTerminalNode() {

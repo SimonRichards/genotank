@@ -1,19 +1,15 @@
-﻿using System;
-using System.Text;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace genotank {
+namespace unit_tests {
     [TestClass]
-    internal class NodesTest {
+    internal class NodesTest {/*
         [TestMethod]
         internal void TestSum() {
             AddOperator adder = new AddOperator();
-            adder.children[0] = new Constant(1);
-            adder.children[1] = new Constant(2);
+            adder.Children[0] = new Constant(1);
+            adder.Children[1] = new Constant(2);
             Assert.AreEqual(3, adder.Solve());
-        }
+        }*/
         /*
         [TestMethod]
         internal void TestDivide() {

@@ -11,8 +11,8 @@ namespace genotank {
 
         const double Step = 1;
 
-        internal override double LeftLim { get { return -5; } }
-        internal override double RightLim { get { return 5; } }
+        internal override double LeftLim { get { return -10; } }
+        internal override double RightLim { get { return 10; } }
 
         public override Series Function {
             get {
@@ -27,7 +27,7 @@ namespace genotank {
             _inputs.Add(_x);
             _function = new Series("Test Function", 100) {ChartType = SeriesChartType.Spline};
             for (double d = LeftLim; d < RightLim; d += Step) {
-                _function.Points.AddXY(d, 5*Math.Pow(d,2) + 3);
+                _function.Points.AddXY(d, 5*Math.Pow(d,2) + 8*Math.Pow(d,3) + 28);
             }
         }
 
@@ -38,7 +38,7 @@ namespace genotank {
                 _inputs[0].Value = x;
                 double actual = individual.Outputs[0].Solve();
                 double error = _function.Points[i].YValues[0] - actual;
-                sumOfSquares += error * error;
+                sumOfSquares += Math.Abs(error);// *error;
             }
             return sumOfSquares;
         }
