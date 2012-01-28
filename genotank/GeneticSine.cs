@@ -5,9 +5,7 @@ using Tree;
 
 namespace genotank {
     internal sealed class GeneticSine : GeneticTask {
-        readonly Variable _x;
         private readonly Series _sine;
-        private readonly List<Variable> _inputs;
 
         internal override double LeftLim { get { return -5; } }
         internal override double RightLim { get { return 5; } }
@@ -20,9 +18,6 @@ namespace genotank {
         }
 
         internal GeneticSine(Configuration configuration) : base(configuration) {
-            _inputs = new List<Variable>();
-            _x = new Variable("x");
-            _inputs.Add(_x);
             _sine = new Series("Sine") {ChartType = SeriesChartType.Spline};
             for (double d = LeftLim; d < RightLim; d += Step) {
                 _sine.Points.AddXY(d, Math.Sin(d));
@@ -33,7 +28,6 @@ namespace genotank {
             double sumOfSquares = 0;
             int i = 0;
             for (double x = LeftLim; x < RightLim; x += Step, i++) {
-                _inputs[0].Value = x;
                 double actual = individual.Outputs[0].Solve();
                 double error = _sine.Points[i].YValues[0] - actual;
                 sumOfSquares += error * error;

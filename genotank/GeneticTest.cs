@@ -5,9 +5,7 @@ using Tree;
 
 namespace genotank {
     internal sealed class GeneticTest : GeneticTask {
-        readonly Variable _x;
         private readonly Series _function;
-        private readonly List<Variable> _inputs;
 
         const double Step = 1;
 
@@ -22,9 +20,6 @@ namespace genotank {
 
         internal GeneticTest(Configuration configuration)
             : base(configuration) {
-            _inputs = new List<Variable>();
-            _x = new Variable("x");
-            _inputs.Add(_x);
             _function = new Series("Test Function", 100) {ChartType = SeriesChartType.Spline};
             for (double d = LeftLim; d < RightLim; d += Step) {
                 _function.Points.AddXY(d, 5*Math.Pow(d,2) + 8*Math.Pow(d,3) + 28);
@@ -35,8 +30,7 @@ namespace genotank {
             double sumOfSquares = 0;
             int i = 0;
             for (double x = LeftLim; x < RightLim; x += Step, i++) {
-                _inputs[0].Value = x;
-                double actual = individual.Outputs[0].Solve();
+                double actual = individual.Output(x);
                 double error = _function.Points[i].YValues[0] - actual;
                 sumOfSquares += Math.Abs(error);// *error;
             }
@@ -47,9 +41,9 @@ namespace genotank {
             return 0;
         }
 
-        internal override List<Variable> Inputs {
+        internal override IEnumerable<string> Inputs {
             get {
-                return _inputs;
+                return new[] {"x"};
             }
         }
 

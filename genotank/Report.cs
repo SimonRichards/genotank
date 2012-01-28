@@ -37,7 +37,7 @@ namespace genotank {
             while (++generation < _config.Generations) {
                 population.Evaluate();
                 var best = population.Best;
-                Console.WriteLine("Generation {0} best: {1}\n{2}", generation - 1, best.Value, best.Key.Outputs[0]);
+                Console.WriteLine("Generation {0} best: {1}\n{2}", generation - 1, best.Value, best.Key.Output);
                 if (best.Value < _config.Threshold) {
                     break;
                 }
