@@ -33,6 +33,14 @@ namespace genotank {
             }
             return _population;
         }
+        
+
+        internal void Run() {
+            for (int i = 0; i < _config.Generations; i++) {
+                _population.Evaluate();
+                _population = _population.Next;
+            }
+        }
 
         internal abstract List<Variable> Inputs { get; }
 

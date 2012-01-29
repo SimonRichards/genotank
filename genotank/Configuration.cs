@@ -4,7 +4,7 @@ namespace genotank {
     internal struct Configuration {
         public static int Seed = new Random().Next();
 
-        internal readonly int 
+        internal int 
             PopSize,
             TournamentSize,
             NumCopy,
@@ -23,12 +23,12 @@ namespace genotank {
         internal Configuration (bool dummy) {
             PopSize = 1000;
             TournamentSize = 10;
-            NumCopy = 500;
-            NumCrossover = 250;
-            NumMutate = 250;
+            NumCopy = 200;
+            NumCrossover = 350;
+            NumMutate = 450;
             MinDepth = 2;
             MaxDepth = 6;
-            Generations = 1000;
+            Generations = 100;
             MaxConstant = 10;
             Threshold = 100;
             Compile = false;

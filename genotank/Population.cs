@@ -1,4 +1,5 @@
-﻿using System;
+﻿#define MULTI_THREADED
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
@@ -6,6 +7,8 @@ using System.CodeDom.Compiler;
 using Microsoft.CSharp;
 using System.Diagnostics;
 using Tree;
+
+
 
 namespace genotank {
     class Population {
@@ -17,8 +20,6 @@ namespace genotank {
         Configuration _config;
         readonly GeneticTask _task;
         readonly Genome [] _genomes;
-        private readonly double[] _fitnesses;
-        private readonly bool[] _fitnessStored;
         private readonly Genome[] _next;
 
         internal KeyValuePair<Genome, double> Best {
@@ -26,9 +27,9 @@ namespace genotank {
                 int bestIndex = 0;
                 double bestFitness = double.MaxValue;
                 for (int i = 0; i < _size; i++) {
-                    if (_fitnessStored[i] && _fitnesses[i] < bestFitness) {
+                    if (this[i].Fitness.HasValue && this[i].Fitness < bestFitness) {
                         bestIndex = i;
-                        bestFitness = _fitnesses[i];
+                        bestFitness = this[i].Fitness.Value;
                     }
                 }
                 return new KeyValuePair<Genome, double>(this[bestIndex], bestFitness); 
@@ -54,16 +55,18 @@ namespace genotank {
             _task = task;
             _fitnessFunc = task.Fitness;
             _genomes = new Genome[_size];
-            _fitnesses = new double[_size];
-            _fitnessStored = new bool[_size];
             _next = new Genome[_size];
         }
 
 
         //TODO Change to some kind of worker pool thing
         internal void Evaluate() {
-            Debug.Assert(_config.NumMutate + _config.NumCrossover + _config.NumCopy == _size);
+            Debug.Assert(_config.NumMutate + _config.NumCrossover + _config.NumCopy == _size, "Make mutation counts match");
+#if MULTI_THREADED
             Parallel.For(0, _size, (i, loop) => {
+#else 
+            for (int i = 0; i < _size; i++) {
+#endif
                 if (i < _config.NumCopy) {
                     _next[i] = TournamentSelect().Clone();
                 }
@@ -73,28 +76,28 @@ namespace genotank {
                 else {
                     _next[i] = TournamentSelect().Clone().Mutate();
                 }
-            });
+            }
+#if MULTI_THREADED
+            );
+#endif
         }
 
-        //TODO better memoisation pattern?
         private Genome TournamentSelect() {
             double min = double.MaxValue;
             int best = -1;
-            for (int i = 0 ; i < _config.TournamentSize; i++) {
-                int current = _random.Next(_size);
-                double fitness;
-                if (_fitnessStored[current]) {
-                    fitness = _fitnesses[current];
-                } else {
-                    fitness = _fitnessFunc(this[current]);
-                    _fitnesses[current] = fitness;
-                    _fitnessStored[current] = true;
+            for (int i = 0; i < _config.TournamentSize; i++) {
+                var currentIndex = _random.Next(_size);
+                var current = this[currentIndex];
+                if (!current.Fitness.HasValue) {
+                    current.Fitness = _fitnessFunc(current);
                 }
-                if (fitness < min) {
-                    min = fitness;
-                    best = current;
+
+                if (current.Fitness < min) {
+                    min = current.Fitness.Value;
+                    best = currentIndex;
                 }
             }
+            Debug.Assert(best != -1, "Failed to find a finite fitness");
             return this[best];
         }
 

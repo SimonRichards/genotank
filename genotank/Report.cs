@@ -9,7 +9,6 @@ namespace genotank {
         Configuration _config;
         readonly GeneticTask _task;
         readonly Series _bestSeries;
-        //Series _medianSeries;
 
         internal Report() {
             InitializeComponent();
@@ -18,16 +17,13 @@ namespace genotank {
             _bestSeries = new Series("Best Fitness", _config.Generations) {
                 ChartType = SeriesChartType.Line
             };
-            /*
-            _medianSeries = new Series("Median Fitness", _config.Generations) {
-                ChartType = SeriesChartType.Line
-            };*/
 
             progressBar.Maximum = _config.PopSize;
             progressBar.Step = 1;
 
             _task = new GeneticTest(_config);
             Run();
+            //Benchmark();
         }
 
         private /*async */void Run() {
@@ -58,6 +54,26 @@ namespace genotank {
 
             //Console.WriteLine(winner.Key.Outputs[0]);
             //Console.WriteLine("Fitness = " + winner.Value);
+        }
+
+        private static void Benchmark() {
+            var config = new Configuration {
+                                               Generations = 50,
+                                               MaxDepth = 6,
+                                               MinDepth = 2,
+                                               NumCopy = 50,
+                                               NumCrossover = 50,
+                                               NumMutate = 50,
+                                               PopSize = 150,
+                                               TournamentSize = 5
+                                           };
+            var task = new GeneticTest(config);
+            var sw = Stopwatch.StartNew();
+            for (int i = 0; i < 500; i++) {
+                task.GeneratePopulation();
+                task.Run();
+            }
+            Console.WriteLine(sw.Elapsed);
         }
     }
 }

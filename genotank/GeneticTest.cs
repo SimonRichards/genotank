@@ -31,6 +31,7 @@ namespace genotank {
             }
         }
 
+        // TODO: race condition, set inputs and solve all in parallel then step.
         internal override double Fitness(Genome individual) {
             double sumOfSquares = 0;
             int i = 0;

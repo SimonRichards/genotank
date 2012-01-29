@@ -5,55 +5,56 @@ using System.CodeDom.Compiler;
 namespace genotank {
 
     abstract class Node {
-        internal Node[] Children;
+        private static Random _rng = new Random();
+
+        internal abstract void Accept(NodeVisitor vistor);
+
+        internal delegate void NodeVisitor(Node node);
 
         protected Node (int arity) {
-             Children = new Node[arity];
             Arity = arity;
+        }
+
+        internal int Count {
+            get {
+                int sum = 0;
+                NodeVisitor counter = node => sum++;
+                Accept(counter);
+                return sum;
+            }
         }
 
         abstract internal double Solve();
         abstract override public string ToString();
         internal int Arity { get; private set; }
-
-        internal virtual Node DeepClone() {
-            var head = (Node)this.MemberwiseClone();
-            head.Children = new Node[head.Arity];
-            for (int i = 0; i < Children.Length; i++) {
-                head.Children[i] = Children[i].DeepClone();
-            }
-            return head;
-        }
-
-        internal void AddToList(List<Node> allNodes) {
-            allNodes.Add(this);
-            foreach (Node child in Children) {
-                child.AddToList(allNodes);
-            }
-        }
-
     };
 
     abstract class BinaryOperator : Node {
-        internal BinaryOperator() : base(2) {}
+        protected readonly Node Left;
+        protected readonly Node Right;
+        internal BinaryOperator(Node left, Node right) : base(2) {
+            Left = left;
+            Right = right;
+        }
+
+        internal override void Accept(NodeVisitor visitor) {
+            Left.Accept(visitor);
+            Right.Accept(visitor);
+            visitor(this);
+        }
 
         abstract internal string Symbol { get; }
 
         override public string ToString() {
-            return
-                '(' +
-                Children[0].ToString() +
-                Symbol +
-                Children[1].ToString() +
-                ')';
+            return "(" + Left + Symbol + Right + ")";
         }
     }
 
     class AddOperator : BinaryOperator {
+        internal AddOperator(Node left, Node right) : base(left, right) {}
+
         override internal double Solve() {
-            double a = Children[0].Solve();
-            double b = Children[1].Solve();
-            return a + b;
+            return Left.Solve() + Right.Solve();
         }
 
         override internal string Symbol {
@@ -64,10 +65,9 @@ namespace genotank {
     };
     
     class SubtractOperator : BinaryOperator {
+        internal SubtractOperator(Node left, Node right) : base(left, right) { }
         override internal double Solve() {
-            double a = Children[0].Solve();
-            double b = Children[1].Solve();
-            return a - b;
+            return Left.Solve() - Right.Solve();
         }
 
         override internal string Symbol {
@@ -78,10 +78,9 @@ namespace genotank {
     };
     
     class MultiplyOperator : BinaryOperator {
+        internal MultiplyOperator(Node left, Node right) : base(left, right) { }  // all these could be cast from BinaryOperator
         override internal double Solve() {
-            double a = Children[0].Solve();
-            double b = Children[1].Solve();
-            return a * b;
+            return Left.Solve() * Right.Solve();
         }
 
         override internal string Symbol {
@@ -90,11 +89,11 @@ namespace genotank {
             }
         }
     };
-    
-       /*
+    /*
+       
     class ProtectedDivideOperator : BinaryOperator {
         override internal double Solve() {
-            double result = children[0].Solve() / children[1].Solve();
+            double result = Children[0].Solve() / Children[1].Solve();
             return Double.IsInfinity(result) || Double.IsInfinity(result) ? 1 : result;
         }
 
@@ -103,8 +102,8 @@ namespace genotank {
                 return " / ";
             }
         }
-    };*/
-    
+    };
+    */
     /*
     class ExponentOperator : BinaryOperator {
         override internal double Solve() {
@@ -143,10 +142,18 @@ namespace genotank {
     }
     */
 
-    class Constant : Node {
+    abstract class Terminal : Node {
+        internal override void Accept(NodeVisitor visitor) {
+            visitor(this);
+        }
+
+        internal Terminal() : base(0) {}
+    }
+
+    class Constant : Terminal {
         readonly double _value;
 
-        internal Constant(double value) : base(0) {
+        internal Constant(double value) {
             _value = value;
         }
 
@@ -159,30 +166,18 @@ namespace genotank {
         }
     };
 
-    class Variable : Node {
+    class Variable : Terminal {
         readonly string _name;
-        double _value;
 
-        internal Variable(string name) :base(0) {
+        internal Variable(string name) {
             _name = name;
         }
 
-        internal override Node DeepClone() {
-            return this;
-        }
-
         internal override double Solve() {
-            return _value;
+            return Value;
         }
 
-        internal double Value {
-            get {
-                return _value;
-            }
-            set {
-                _value = value;
-            }
-        }
+        internal double Value { get; set; }
 
         override public string ToString() {
             return _name;
