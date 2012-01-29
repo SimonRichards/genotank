@@ -42,7 +42,7 @@ namespace genotank {
                 Parallel.For(0, pop.Size, (j, loop) => {
                     double actual = pop[j].Outputs[0].Solve();
                     double error = _function.Points[i].YValues[0] - actual;
-                    sumsOfSquares[j] += Math.Abs(error); // *error;
+                    sumsOfSquares[j] += error *error;
                 });
             }
             Parallel.For(0, pop.Size, (j, loop) => {

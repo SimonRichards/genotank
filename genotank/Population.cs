@@ -58,30 +58,23 @@ namespace genotank {
         }
 
 
-        //TODO Change to some kind of worker pool thing
+        //TODO Benchmark this parallised to see if worthwhile
         internal void Evaluate() {
             Debug.Assert(_config.NumMutate + _config.NumCrossover + _config.NumCopy == Size, "Make mutation counts match");
 
             _fitnessFunc(this);
-
-#if MULTI_THREADED
-            Parallel.For(0, Size, (i, loop) => {
-#else 
-            for (int i = 0; i < _size; i++) {
-#endif
-                if (i < _config.NumCopy) {
-                    _next[i] = TournamentSelect().Clone();
-                }
-                else if (i < _config.NumCrossover + _config.NumCopy) {
-                    _next[i] = TournamentSelect().Crossover(TournamentSelect());
-                }
-                else {
-                    _next[i] = TournamentSelect().Clone().Mutate();
-                }
+            int i, index = 0; 
+            for (; index < _config.NumCopy; index++) {
+                _next[index] = TournamentSelect();
             }
-#if MULTI_THREADED
-            );
-#endif
+
+            for (i = 0; i < _config.NumMutate; index++, i++) {
+                _next[index] = TournamentSelect().Mutate();
+            }
+
+            for (i = 0; i < _config.NumCrossover; index++, i++) {
+                _next[index] = TournamentSelect().Crossover(TournamentSelect());
+            }
         }
 
         private Genome TournamentSelect() {
