@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Windows.Forms.DataVisualization.Charting;
 using Tree;
 
@@ -31,17 +32,22 @@ namespace genotank {
             }
         }
 
-        // TODO: race condition, set inputs and solve all in parallel then step.
-        internal override double Fitness(Genome individual) {
-            double sumOfSquares = 0;
+        internal override void Fitness(Population pop) {
+            var sumsOfSquares = new double[pop.Size];
+            sumsOfSquares.Initialize();
+
             int i = 0;
             for (double x = LeftLim; x < RightLim; x += Step, i++) {
                 _inputs[0].Value = x;
-                double actual = individual.Outputs[0].Solve();
-                double error = _function.Points[i].YValues[0] - actual;
-                sumOfSquares += Math.Abs(error);// *error;
+                Parallel.For(0, pop.Size, (j, loop) => {
+                    double actual = pop[j].Outputs[0].Solve();
+                    double error = _function.Points[i].YValues[0] - actual;
+                    sumsOfSquares[j] += Math.Abs(error); // *error;
+                });
             }
-            return sumOfSquares;
+            Parallel.For(0, pop.Size, (j, loop) => {
+                pop[j].Fitness = sumsOfSquares[j];
+            });
         }
 
         internal override double Fitness(Generation.Solver solution) {

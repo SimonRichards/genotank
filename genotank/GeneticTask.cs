@@ -46,7 +46,7 @@ namespace genotank {
 
         internal abstract int NumOutputs {get;}
 
-        internal abstract double Fitness(Genome individual);
+        internal abstract void Fitness(Population pop);
         internal abstract double Fitness(Generation.Solver solution);
 
         internal abstract double LeftLim { get; }

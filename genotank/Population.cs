@@ -12,9 +12,8 @@ using Tree;
 
 namespace genotank {
     class Population {
-        internal delegate double FitnessFunction(Genome g);
+        internal delegate void FitnessFunction(Population g);
 
-        readonly int _size;
         readonly FitnessFunction _fitnessFunc;
         readonly Random _random = new Random(Configuration.Seed);
         Configuration _config;
@@ -24,15 +23,15 @@ namespace genotank {
 
         internal KeyValuePair<Genome, double> Best {
             get {
-                int bestIndex = 0;
                 double bestFitness = double.MaxValue;
-                for (int i = 0; i < _size; i++) {
-                    if (this[i].Fitness.HasValue && this[i].Fitness < bestFitness) {
+                int bestIndex = -1;
+                for (int i = 0; i < Size; i++) {
+                    if (this[i].Fitness < bestFitness) {
                         bestIndex = i;
-                        bestFitness = this[i].Fitness.Value;
+                        bestFitness = this[i].Fitness;
                     }
                 }
-                return new KeyValuePair<Genome, double>(this[bestIndex], bestFitness); 
+                return new KeyValuePair<Genome, double>(this[bestIndex], bestFitness);
             }
         }
 
@@ -43,27 +42,30 @@ namespace genotank {
 
         internal Genome[] Genomes {
             set {
-                for (int i = 0; i < _size; i++) {
+                for (int i = 0; i < Size; i++) {
                     this[i] = value[i];
                 }
             }
         }
 
         internal Population(Configuration config, GeneticTask task) {
-            _size = config.PopSize;
+            Size = config.PopSize;
             _config = config;
             _task = task;
             _fitnessFunc = task.Fitness;
-            _genomes = new Genome[_size];
-            _next = new Genome[_size];
+            _genomes = new Genome[Size];
+            _next = new Genome[Size];
         }
 
 
         //TODO Change to some kind of worker pool thing
         internal void Evaluate() {
-            Debug.Assert(_config.NumMutate + _config.NumCrossover + _config.NumCopy == _size, "Make mutation counts match");
+            Debug.Assert(_config.NumMutate + _config.NumCrossover + _config.NumCopy == Size, "Make mutation counts match");
+
+            _fitnessFunc(this);
+
 #if MULTI_THREADED
-            Parallel.For(0, _size, (i, loop) => {
+            Parallel.For(0, Size, (i, loop) => {
 #else 
             for (int i = 0; i < _size; i++) {
 #endif
@@ -86,14 +88,11 @@ namespace genotank {
             double min = double.MaxValue;
             int best = -1;
             for (int i = 0; i < _config.TournamentSize; i++) {
-                var currentIndex = _random.Next(_size);
+                var currentIndex = _random.Next(Size);
                 var current = this[currentIndex];
-                if (!current.Fitness.HasValue) {
-                    current.Fitness = _fitnessFunc(current);
-                }
 
                 if (current.Fitness < min) {
-                    min = current.Fitness.Value;
+                    min = current.Fitness;
                     best = currentIndex;
                 }
             }
@@ -101,6 +100,14 @@ namespace genotank {
             return this[best];
         }
 
+        public Population Next {
+            get {
+                var next = new Population(_config, _task) { Genomes = _next };
+                return next;
+            }
+        }
+
+#if COMPILED
         public Generation Compile(IEnumerable<Genome> genomes) {
             var program = new StringBuilder(5000);
             program.Append(@"namespace genotank {
@@ -151,13 +158,10 @@ namespace genotank {
             return (Generation)type.GetConstructor(Type.EmptyTypes).Invoke(null);
 // ReSharper restore PossibleNullReferenceException
         }
+#endif
 
-        public Population Next {
-            get {
-                var next = new Population(_config, _task) {Genomes = _next};
-                return next;
-            }
-        }
+
+        public int Size { get; set; }
     }
     
 }

@@ -29,12 +29,12 @@ namespace genotank {
             }
         }
 
-        internal override double Fitness(Genome individual) {
+        internal override double Fitness(Population pop) {
             double sumOfSquares = 0;
             int i = 0;
             for (double x = LeftLim; x < RightLim; x += Step, i++) {
                 _inputs[0].Value = x;
-                double actual = individual.Outputs[0].Solve();
+                double actual = pop.Outputs[0].Solve();
                 double error = _sine.Points[i].YValues[0] - actual;
                 sumOfSquares += error * error;
             }

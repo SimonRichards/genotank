@@ -11,7 +11,7 @@ namespace genotank {
         readonly God _god;
         private static readonly Random Random = new Random(Configuration.Seed);
 
-        public double? Fitness { get; set; }
+        public double Fitness { get; set; }
 
         internal Genome(Node[] outputs, God god) {
             _outputs = outputs;

@@ -50,7 +50,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration.cs" />
-    <Compile Include="GeneticSine.cs" />
     <Compile Include="Genome.cs" />
     <Compile Include="GeneticTask.cs" />
     <Compile Include="God.cs" />
