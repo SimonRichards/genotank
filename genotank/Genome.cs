@@ -8,6 +8,7 @@ using System.Diagnostics;
 namespace genotank {
     class Genome {
         readonly Node[] _outputs;
+        private readonly Node Head;
         readonly God _god;
         private static readonly Random Random = new Random(Configuration.Seed);
 
@@ -15,25 +16,39 @@ namespace genotank {
 
         internal Genome(Node[] outputs, God god) {
             _outputs = outputs;
+            Head = outputs[0];
             _god = god;
         }
 
-        private Genome Copy() {
-            return new Genome(_outputs, _god);
-        }
-
-        internal Genome Clone() {
-            return this;
-        }
-
         internal Genome Crossover(Genome other) {
-            Genome genome = Copy();
-            return genome;
+            return new Genome(new[] {ReplaceRandomWith(other.GetRandom())}, _god);
         }
 
         internal Genome Mutate() {
-            Genome genome = Copy();
-            return genome;
+            return new Genome(new[] { ReplaceRandomWith(_god.RampedHalfAndHalf()) }, _god);
+        }
+
+        private Node ReplaceRandomWith(Node newNode) {
+            return _outputs[0].Clone(GetRandomChain(), newNode);
+        }
+
+        private Stack<Node> GetRandomChain() {
+            var stack = new Stack<Node>();
+            var target = GetRandom();
+            Head.Find(stack, target);
+            return stack;
+        }
+
+        private Node GetRandom() {
+            int index = Random.Next(Head.Count);
+            int count = 0;
+            Node result = Head;
+            Head.Accept(node => {
+                if (count++ == index) {
+                    result = node;
+                }
+            });
+            return result;
         }
 
         internal Node[] Outputs {

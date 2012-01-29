@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System;
+using System.Diagnostics;
 using Microsoft.CSharp;
 using System.CodeDom.Compiler;
 namespace genotank {
@@ -24,9 +25,15 @@ namespace genotank {
             }
         }
 
+
+        internal abstract Node this[int i] { get; }
+        internal abstract bool Find(Stack<Node> stack, Node target);
         abstract internal double Solve();
         abstract override public string ToString();
         internal int Arity { get; private set; }
+
+        internal abstract Node Clone(Stack<Node> chainToReplace, Node newNode);
+
     };
 
     abstract class BinaryOperator : Node {
@@ -37,11 +44,22 @@ namespace genotank {
             Right = right;
         }
 
+        
+        internal override bool Find(Stack<Node> stack, Node target) {
+            bool result =  this == target || Left.Find(stack, target) || Right.Find(stack, target);
+            if (result) {
+                stack.Push(this);
+            }
+            return result;
+        }
+
         internal override void Accept(NodeVisitor visitor) {
             Left.Accept(visitor);
             Right.Accept(visitor);
             visitor(this);
         }
+
+        internal override Node this[int i] { get { return i == 0 ? Left : Right; } }
 
         abstract internal string Symbol { get; }
 
@@ -52,6 +70,14 @@ namespace genotank {
 
     class AddOperator : BinaryOperator {
         internal AddOperator(Node left, Node right) : base(left, right) {}
+
+        internal override Node Clone(Stack<Node> chainToReplace, Node newNode) {
+            var replacedChild = (chainToReplace.Count == 0) ? newNode : chainToReplace.Pop();
+            
+            return new AddOperator(
+                replacedChild == Left ? Left.Clone(chainToReplace, newNode) : Left, 
+                replacedChild == Right ? Right.Clone(chainToReplace, newNode) : Right);
+        }
 
         override internal double Solve() {
             return Left.Solve() + Right.Solve();
@@ -65,7 +91,16 @@ namespace genotank {
     };
     
     class SubtractOperator : BinaryOperator {
-        internal SubtractOperator(Node left, Node right) : base(left, right) { }
+        internal SubtractOperator(Node left, Node right) : base(left, right) {}
+
+        internal override Node Clone(Stack<Node> chainToReplace, Node newNode) {
+            var replacedChild = (chainToReplace.Count == 0) ? newNode : chainToReplace.Pop();
+
+            return new SubtractOperator(
+                replacedChild == Left ? Left.Clone(chainToReplace, newNode) : Left,
+                replacedChild == Right ? Right.Clone(chainToReplace, newNode) : Right);
+        }
+
         override internal double Solve() {
             return Left.Solve() - Right.Solve();
         }
@@ -79,6 +114,15 @@ namespace genotank {
     
     class MultiplyOperator : BinaryOperator {
         internal MultiplyOperator(Node left, Node right) : base(left, right) { }  // all these could be cast from BinaryOperator
+
+        internal override Node Clone(Stack<Node> chainToReplace, Node newNode) {
+            var replacedChild = (chainToReplace.Count == 0) ? newNode : chainToReplace.Pop();
+
+            return new MultiplyOperator(
+                replacedChild == Left ? Left.Clone(chainToReplace, newNode) : Left,
+                replacedChild == Right ? Right.Clone(chainToReplace, newNode) : Right);
+        }
+
         override internal double Solve() {
             return Left.Solve() * Right.Solve();
         }
@@ -147,6 +191,19 @@ namespace genotank {
             visitor(this);
         }
 
+        internal override Node Clone(Stack<Node> chainToReplace, Node newNode) {
+            Debugger.Break();
+            throw new Exception("Can't replace child of a terminal");
+        }
+
+        internal override Node this[int i] {
+            get { throw new NotImplementedException(); }
+        }
+
+        internal override bool Find(Stack<Node> stack, Node target) {
+            return this == target;
+        }
+
         internal Terminal() : base(0) {}
     }
 
@@ -156,6 +213,7 @@ namespace genotank {
         internal Constant(double value) {
             _value = value;
         }
+
 
         override internal double Solve() {
             return _value;
