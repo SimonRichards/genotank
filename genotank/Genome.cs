@@ -29,13 +29,15 @@ namespace genotank {
         }
 
         private Node ReplaceRandomWith(Node newNode) {
-            return _outputs[0].Clone(GetRandomChain(), newNode);
+            var result = GetRandomChain();
+            return result.Count == 0 ? newNode : Head.Clone(result, newNode);
         }
 
         private Stack<Node> GetRandomChain() {
             var stack = new Stack<Node>();
             var target = GetRandom();
             Head.Find(stack, target);
+            stack.Pop();
             return stack;
         }
 

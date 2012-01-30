@@ -72,11 +72,11 @@ namespace genotank {
         internal AddOperator(Node left, Node right) : base(left, right) {}
 
         internal override Node Clone(Stack<Node> chainToReplace, Node newNode) {
-            var replacedChild = (chainToReplace.Count == 0) ? newNode : chainToReplace.Pop();
-            
-            return new AddOperator(
-                replacedChild == Left ? Left.Clone(chainToReplace, newNode) : Left, 
-                replacedChild == Right ? Right.Clone(chainToReplace, newNode) : Right);
+            var replacedChild = chainToReplace.Pop();
+            if (chainToReplace.Count == 0) {
+                return replacedChild == Left ? new AddOperator(newNode, Right) : new AddOperator(Left, newNode);
+            }
+            return replacedChild == Left ? new AddOperator(Left.Clone(chainToReplace, newNode), Right) : new AddOperator(Left, Right.Clone(chainToReplace, newNode));
         }
 
         override internal double Solve() {
@@ -94,11 +94,11 @@ namespace genotank {
         internal SubtractOperator(Node left, Node right) : base(left, right) {}
 
         internal override Node Clone(Stack<Node> chainToReplace, Node newNode) {
-            var replacedChild = (chainToReplace.Count == 0) ? newNode : chainToReplace.Pop();
-
-            return new SubtractOperator(
-                replacedChild == Left ? Left.Clone(chainToReplace, newNode) : Left,
-                replacedChild == Right ? Right.Clone(chainToReplace, newNode) : Right);
+            var replacedChild = chainToReplace.Pop();
+            if (chainToReplace.Count == 0) {
+                return replacedChild == Left ? new SubtractOperator(newNode, Right) : new SubtractOperator(Left, newNode);
+            }
+            return replacedChild == Left ? new SubtractOperator(Left.Clone(chainToReplace, newNode), Right) : new SubtractOperator(Left, Right.Clone(chainToReplace, newNode));
         }
 
         override internal double Solve() {
@@ -116,11 +116,11 @@ namespace genotank {
         internal MultiplyOperator(Node left, Node right) : base(left, right) { }  // all these could be cast from BinaryOperator
 
         internal override Node Clone(Stack<Node> chainToReplace, Node newNode) {
-            var replacedChild = (chainToReplace.Count == 0) ? newNode : chainToReplace.Pop();
-
-            return new MultiplyOperator(
-                replacedChild == Left ? Left.Clone(chainToReplace, newNode) : Left,
-                replacedChild == Right ? Right.Clone(chainToReplace, newNode) : Right);
+            var replacedChild = chainToReplace.Pop();
+            if (chainToReplace.Count == 0) {
+                return replacedChild == Left ? new MultiplyOperator(newNode, Right) : new MultiplyOperator(Left, newNode);
+            }
+            return replacedChild == Left ? new MultiplyOperator(Left.Clone(chainToReplace, newNode), Right) : new MultiplyOperator(Left, Right.Clone(chainToReplace, newNode));
         }
 
         override internal double Solve() {
@@ -201,7 +201,11 @@ namespace genotank {
         }
 
         internal override bool Find(Stack<Node> stack, Node target) {
-            return this == target;
+            if (this == target) {
+                stack.Push(this);
+                return true;
+            }
+            return false;
         }
 
         internal Terminal() : base(0) {}

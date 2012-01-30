@@ -47,6 +47,11 @@ namespace genotank {
                 }
             }
         }
+        private Stopwatch sw;
+        private static long _evalTime = 0;
+        private static long _genTime = 0;
+        private static long _tournamentTime = 0;
+        private const long max = (long.MaxValue / 4) * 3;
 
         internal Population(Configuration config, GeneticTask task) {
             Size = config.PopSize;
@@ -55,29 +60,39 @@ namespace genotank {
             _fitnessFunc = task.Fitness;
             _genomes = new Genome[Size];
             _next = new Genome[Size];
+            sw = Stopwatch.StartNew();
         }
+
 
 
         //TODO Benchmark this parallised to see if worthwhile
         internal void Evaluate() {
             Debug.Assert(_config.NumMutate + _config.NumCrossover + _config.NumCopy == Size, "Make mutation counts match");
+            if (_evalTime > max || _genTime > max) {
+                Debugger.Break();
+            }
 
+            sw.Restart();
             _fitnessFunc(this);
-            int i, index = 0; 
-            for (; index < _config.NumCopy; index++) {
-                _next[index] = TournamentSelect();
+            _evalTime += sw.ElapsedTicks;
+            sw.Restart();
+            int index = 0; 
+            while (index < _config.NumCopy) {
+                _next[index++] = TournamentSelect();
             }
 
-            for (i = 0; i < _config.NumMutate; index++, i++) {
-                _next[index] = TournamentSelect().Mutate();
-            }
-
-            for (i = 0; i < _config.NumCrossover; index++, i++) {
-                _next[index] = TournamentSelect().Crossover(TournamentSelect());
-            }
+            Parallel.For(0, _config.NumMutate, i => {
+                _next[i + _config.NumCopy] = TournamentSelect().Mutate();
+            });
+            
+            Parallel.For(0, _config.NumCrossover, i => {
+                _next[i + _config.NumCopy + _config.NumMutate] = TournamentSelect().Crossover(TournamentSelect());
+            });
+            _genTime += sw.ElapsedTicks;
         }
 
         private Genome TournamentSelect() {
+            long start = sw.ElapsedTicks;
             double min = double.MaxValue;
             int best = -1;
             for (int i = 0; i < _config.TournamentSize; i++) {
@@ -89,6 +104,7 @@ namespace genotank {
                     best = currentIndex;
                 }
             }
+            _tournamentTime += sw.ElapsedTicks - start;
             Debug.Assert(best != -1, "Failed to find a finite fitness");
             return this[best];
         }

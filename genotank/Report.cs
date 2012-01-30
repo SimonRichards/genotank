@@ -22,8 +22,8 @@ namespace genotank {
             progressBar.Step = 1;
 
             _task = new GeneticTest(_config);
-            Run();
-            //Benchmark();
+            //Run();
+            Benchmark();
         }
 
         private /*async */void Run() {
@@ -69,7 +69,7 @@ namespace genotank {
                                            };
             var task = new GeneticTest(config);
             var sw = Stopwatch.StartNew();
-            for (int i = 0; i < 500; i++) {
+            for (int i = 0; i < 50; i++) {
                 task.GeneratePopulation();
                 task.Run();
             }

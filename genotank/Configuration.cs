@@ -26,8 +26,8 @@ namespace genotank {
             NumCopy = 200;
             NumCrossover = 350;
             NumMutate = 450;
-            MinDepth = 2;
-            MaxDepth = 6;
+            MinDepth = 1;
+            MaxDepth = 3;
             Generations = 100;
             MaxConstant = 10;
             Threshold = 100;

@@ -39,7 +39,7 @@ namespace genotank {
             int i = 0;
             for (double x = LeftLim; x < RightLim; x += Step, i++) {
                 _inputs[0].Value = x;
-                Parallel.For(0, pop.Size, (j, loop) => {
+                Parallel.For(0, pop.Size, j => {
                     double actual = pop[j].Outputs[0].Solve();
                     double error = _function.Points[i].YValues[0] - actual;
                     sumsOfSquares[j] += error *error;
