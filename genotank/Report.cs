@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
 using System.Diagnostics;
@@ -25,12 +26,12 @@ namespace genotank {
             Run();
         }
 
-        private void Run() {
+        private async void Run() {
             int generation = 0;
             var s = Stopwatch.StartNew();
             var population = _task.GeneratePopulation();
             while (++generation < _config.Generations) {
-                population.Evaluate();
+                await TaskEx.Run(population.Evaluate);
                 var best = population.Best;
                 Console.WriteLine("Generation {0} best: {1}\n{2}", generation - 1, best.Value, best.Key.Outputs[0]);
                 if (best.Value < _config.Threshold) {
@@ -40,6 +41,7 @@ namespace genotank {
                 population = population.Next;
                 progressBar.PerformStep();
             }
+            await TaskEx.Run(population.Evaluate);
             var winner = population.Best;
             Console.WriteLine("Time elapsed = " + s.Elapsed.TotalSeconds);
             progressPlot.Series.Add(_bestSeries);
