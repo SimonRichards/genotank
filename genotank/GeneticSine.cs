@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Windows.Forms.DataVisualization.Charting;
 using Tree;
 
@@ -29,16 +30,22 @@ namespace genotank {
             }
         }
 
-        internal override double Fitness(Population pop) {
-            double sumOfSquares = 0;
+        internal override void Fitness(Population pop) {
+            var sumsOfSquares = new double[pop.Size];
+            sumsOfSquares.Initialize();
+
             int i = 0;
             for (double x = LeftLim; x < RightLim; x += Step, i++) {
                 _inputs[0].Value = x;
-                double actual = pop.Outputs[0].Solve();
-                double error = _sine.Points[i].YValues[0] - actual;
-                sumOfSquares += error * error;
+                Parallel.For(0, pop.Size, j => {
+                    double actual = pop[j].Outputs[0].Solve();
+                    double error = _sine.Points[i].YValues[0] - actual;
+                    sumsOfSquares[j] += error * error;
+                });
             }
-            return sumOfSquares;
+            Parallel.For(0, pop.Size, (j, loop) => {
+                pop[j].Fitness = sumsOfSquares[j];// +(pop[j].Outputs[0].Count > 100 ? pop[j].Outputs[0].Count : 0);
+            });
         }
 
         internal override double Fitness(Generation.Solver solution) {

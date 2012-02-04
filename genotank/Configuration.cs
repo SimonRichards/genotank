@@ -30,7 +30,7 @@ namespace genotank {
             MaxDepth = 2;
             Generations = 100;
             MaxConstant = 10;
-            Threshold = 100;
+            Threshold = 3;
             Compile = false;
         }
     };

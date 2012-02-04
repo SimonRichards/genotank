@@ -22,7 +22,7 @@ namespace genotank {
             progressBar.Maximum = _config.PopSize;
             progressBar.Step = 1;
 
-            _task = new GeneticTest(_config);
+            _task = new GeneticSine(_config);
             Run();
         }
 

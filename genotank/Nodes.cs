@@ -1,8 +1,6 @@
 using System.Collections.Generic;
 using System;
 using System.Diagnostics;
-using Microsoft.CSharp;
-using System.CodeDom.Compiler;
 namespace genotank {
 
     abstract class Node {
@@ -133,11 +131,24 @@ namespace genotank {
             }
         }
     };
-    /*
+    
        
     class ProtectedDivideOperator : BinaryOperator {
+        internal ProtectedDivideOperator(Node left, Node right) : base(left, right) { }
+
+        internal override Node Clone(Stack<Node> chainToReplace, Node newNode) {
+            var replacedChild = chainToReplace.Pop();
+            return chainToReplace.Count == 0 ? (
+                    replacedChild == Left ? 
+                        new ProtectedDivideOperator(newNode, Right) :
+                        new ProtectedDivideOperator(Left, newNode)) :
+                    replacedChild == Left
+                        ? new ProtectedDivideOperator(Left.Clone(chainToReplace, newNode), Right)
+                        : new ProtectedDivideOperator(Left, Right.Clone(chainToReplace, newNode));
+        }
+
         override internal double Solve() {
-            double result = Children[0].Solve() / Children[1].Solve();
+            double result = Left.Solve() / Right.Solve();
             return Double.IsInfinity(result) || Double.IsInfinity(result) ? 1 : result;
         }
 
@@ -147,12 +158,25 @@ namespace genotank {
             }
         }
     };
-    */
-    /*
+    
+   
     class ExponentOperator : BinaryOperator {
+        internal ExponentOperator(Node left, Node right) : base(left, right) { }
+
+        internal override Node Clone(Stack<Node> chainToReplace, Node newNode) {
+            var replacedChild = chainToReplace.Pop();
+            return chainToReplace.Count == 0 ? (
+                    replacedChild == Left ?
+                        new ExponentOperator(newNode, Right) :
+                        new ExponentOperator(Left, newNode)) :
+                    replacedChild == Left
+                        ? new ExponentOperator(Left.Clone(chainToReplace, newNode), Right)
+                        : new ExponentOperator(Left, Right.Clone(chainToReplace, newNode));
+        }
+
         override internal double Solve() {
             try {
-                return Math.Pow(children[0].Solve(), children[1].Solve());
+                return Math.Pow(Left.Solve(), Right.Solve());
             } catch {
                 return 1;
             }
@@ -164,27 +188,62 @@ namespace genotank {
             }
         }
     };
-    */
-    /*
+    
+    
     class CompareOperator : Node {
-
-        internal override double Solve() {
-            return children[0].Solve() < children[1].Solve() ? children[2].Solve() : children[3].Solve();
+        private readonly Node _a, _b, _c, _d;
+        private readonly Node[] _children;
+        internal CompareOperator(Node a, Node b, Node c, Node d) : base(4) {
+            _a = a;
+            _b = b;
+            _c = c;
+            _d = d;
+            _children = new[] {_a, _b, _c, _d};
         }
 
-        override internal int Arity {
-            get {
-                return 4;
-            }
+        internal override Node Clone(Stack<Node> chainToReplace, Node newNode) {
+            throw new OperationCanceledException();
+            /*
+            var replacedChild = chainToReplace.Pop();
+            Node a, b, c, d;
+            return chainToReplace.Count == 0 ? (
+                    replacedChild == Left ?
+                        new ExponentOperator(newNode, Right) :
+                        new ExponentOperator(Left, newNode)) :
+                    replacedChild == Left ?
+                        new ExponentOperator(Left.Clone(chainToReplace, newNode), Right) :
+                        new ExponentOperator(Left, Right.Clone(chainToReplace, newNode));
+             */
+        }
+
+        internal override Node this[int i] { get { return _children[i]; } }
+
+        internal override double Solve() {
+            return _a.Solve() < _b.Solve() ? _c.Solve() : _d.Solve();
         }
 
         public override string ToString() {
             return 
-                "(" + children[0].ToString() + " < " + children[1].ToString() + " ? " + children[2].ToString() + " : " + children[3].ToString() + ")";
+                "(" + _a + " < " + _b + " ? " + _c + " : " + _d + ")";
+        }
+
+        internal override bool Find(Stack<Node> stack, Node target) {
+            bool result = this == target || _a.Find(stack, target) || _b.Find(stack, target) || _c.Find(stack, target) || _d.Find(stack, target);
+            if (result) {
+                stack.Push(this);
+            }
+            return result;
+        }
+
+        internal override void Accept(NodeVisitor visitor) {
+            foreach (var child in _children) {
+                child.Accept(visitor);
+            }
+            visitor(this);
         }
 
     }
-    */
+    
 
     abstract class Terminal : Node {
         internal override void Accept(NodeVisitor visitor) {
